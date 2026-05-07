@@ -126,7 +126,7 @@ export const SchwabOptionChainResponseSchema = z.object({
     mark: z.number().optional(),
     bid: z.number().optional(),
     ask: z.number().optional(),
-  }).passthrough().optional(),
+  }).passthrough().nullish(),
   underlyingPrice: z.number().optional(),
   strategy: z.string().optional(),
   interval: z.number().optional(),
