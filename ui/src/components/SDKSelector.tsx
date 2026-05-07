@@ -174,10 +174,9 @@ export const SECURITIES_SDK_OPTIONS: SDKOption[] = [
   {
     id: 'schwab',
     name: 'Charles Schwab',
-    description: 'Full-service US broker with comprehensive research and zero-commission trades.',
+    description: 'Realtime US equity quotes and full option chains via the Schwab Trader API. Trading endpoints stubbed in v1.',
     badge: 'CS',
-    badgeColor: 'text-text-muted',
-    comingSoon: true,
+    badgeColor: 'text-blue-400',
   },
   {
     id: 'tradier',
@@ -210,6 +209,13 @@ export const PLATFORM_TYPE_OPTIONS: SDKOption[] = [
     description: 'Professional-grade trading via TWS or IB Gateway. Stocks, options, futures, bonds.',
     badge: 'IB',
     badgeColor: 'text-orange-400',
+  },
+  {
+    id: 'schwab',
+    name: 'Charles Schwab',
+    description: 'Realtime US equity quotes and full option chains via the Schwab Trader API. Trading endpoints stubbed in v1.',
+    badge: 'CS',
+    badgeColor: 'text-blue-400',
   },
 ]
 
