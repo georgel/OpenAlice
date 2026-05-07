@@ -227,12 +227,12 @@ export class SchwabBroker implements IBroker<SchwabBrokerMeta> {
     const q = entry.quote
     return {
       contract,
-      last: q.lastPrice ?? 0,
-      bid: q.bidPrice ?? 0,
-      ask: q.askPrice ?? 0,
-      volume: q.totalVolume ?? 0,
-      high: q.highPrice,
-      low: q.lowPrice,
+      last: String(q.lastPrice ?? 0),
+      bid: String(q.bidPrice ?? 0),
+      ask: String(q.askPrice ?? 0),
+      volume: String(q.totalVolume ?? 0),
+      high: q.highPrice != null ? String(q.highPrice) : undefined,
+      low: q.lowPrice != null ? String(q.lowPrice) : undefined,
       timestamp: new Date(q.quoteTime ?? Date.now()),
     }
   }

@@ -303,10 +303,10 @@ describe('SchwabBroker', () => {
   it('getQuote returns parsed Quote', async () => {
     const contract = makeStockContract('AAPL')
     const quote = await broker.getQuote(contract)
-    expect(quote.last).toBe(175.15)
-    expect(quote.bid).toBe(175.10)
-    expect(quote.ask).toBe(175.20)
-    expect(quote.volume).toBe(12345678)
+    expect(quote.last).toBe('175.15')
+    expect(quote.bid).toBe('175.1')
+    expect(quote.ask).toBe('175.2')
+    expect(quote.volume).toBe('12345678')
   })
 
   it('getOptionChain returns flattened chain', async () => {
