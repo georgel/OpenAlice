@@ -33,6 +33,8 @@ export const EquityQuoteDataSchema = z.object({
   change_percent: z.number().nullable().default(null).describe('Change in price as a normalized percentage.'),
   year_high: z.number().nullable().default(null).describe('The one year high (52W High).'),
   year_low: z.number().nullable().default(null).describe('The one year low (52W Low).'),
+  source: z.string().nullable().default(null).describe('Provider that served this quote (e.g. "schwab", "yfinance").'),
+  quoted_at: z.string().nullable().default(null).describe('ISO 8601 timestamp when the upstream price was generated.'),
 }).passthrough()
 
 export type EquityQuoteData = z.infer<typeof EquityQuoteDataSchema>

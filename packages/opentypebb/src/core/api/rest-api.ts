@@ -14,6 +14,7 @@ import { Hono } from 'hono'
 import { cors } from 'hono/cors'
 import { serve } from '@hono/node-server'
 import type { Credentials } from '../app/model/credentials.js'
+import { getSchwabBroker } from '../../providers/schwab/schwab-singleton.js'
 
 const OBB_HEADERS = { 'X-Backend-Type': 'OpenBB Platform' }
 
@@ -34,6 +35,19 @@ export function createApp(
 
   // Health check
   app.get('/api/v1/health', (c) => c.json({ status: 'ok' }))
+
+  // Schwab-specific health: surfaces whether the OAuth singleton has booted
+  // and the access token's expiry (~30 min from last refresh).
+  app.get('/api/v1/schwab/health', async (c) => {
+    try {
+      const broker = await getSchwabBroker()
+      const tokens = broker.meta.getCurrentTokens()
+      const expiresAt = new Date(tokens.expiresAt).toISOString()
+      return c.json({ connected: true, expires_at: expiresAt })
+    } catch {
+      return c.json({ connected: false, expires_at: null })
+    }
+  })
 
   return app
 }

@@ -13,9 +13,22 @@ export const priceRouter = new Router({
 priceRouter.command({
   model: 'EquityQuote',
   path: '/quote',
-  description: 'Get the latest quote for a given stock. This includes price, volume, and other data.',
+  description: 'Get the latest quote for a given stock. Schwab provides realtime data; falls back to yfinance on Schwab failure.',
   handler: async (executor, provider, params, credentials) => {
-    return executor.execute(provider, 'EquityQuote', params, credentials)
+    if (provider !== 'schwab') {
+      return executor.execute(provider, 'EquityQuote', params, credentials)
+    }
+    try {
+      return await executor.execute('schwab', 'EquityQuote', params, credentials)
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err)
+      console.error('[price-router] Schwab quote failed, falling back to yfinance:', msg)
+      const yfinanceResult = await executor.execute('yfinance', 'EquityQuote', params, credentials)
+      // Inject fallback markers into each result record so callers can see
+      // they got yfinance data even though they asked for schwab.
+      const records = (Array.isArray(yfinanceResult) ? yfinanceResult : [yfinanceResult]) as Record<string, unknown>[]
+      return records.map((r) => ({ ...r, source: 'yfinance', fallback: true }))
+    }
   },
 })
 
