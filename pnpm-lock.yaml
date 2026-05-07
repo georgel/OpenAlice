@@ -193,6 +193,12 @@ importers:
       '@hono/node-server':
         specifier: ^2.0.0
         version: 2.0.0(hono@4.12.14)
+      '@traderalice/ibkr':
+        specifier: workspace:*
+        version: link:../ibkr
+      decimal.js:
+        specifier: ^10.6.0
+        version: 10.6.0
       hono:
         specifier: ^4.12.14
         version: 4.12.14

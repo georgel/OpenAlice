@@ -43,6 +43,8 @@
   },
   "dependencies": {
     "@hono/node-server": "^2.0.0",
+    "@traderalice/ibkr": "workspace:*",
+    "decimal.js": "^10.6.0",
     "hono": "^4.12.14",
     "undici": "^7.24.4",
     "yahoo-finance2": "^3.13.1",
