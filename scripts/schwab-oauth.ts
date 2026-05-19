@@ -24,11 +24,16 @@
  */
 
 import { createInterface } from 'node:readline/promises'
+import { mkdir, writeFile } from 'node:fs/promises'
+import { dirname } from 'node:path'
 import {
   buildAuthorizationUrl,
   exchangeCodeForToken,
   extractAuthorizationCode,
 } from '../src/domain/trading/brokers/schwab/schwab-auth.js'
+
+// Matches schwab-singleton.ts TOKEN_FILE — keep in sync if that ever moves.
+const DEFAULT_TOKENS_PATH = '/app/data/config/schwab-tokens.json'
 
 function arg(name: string): string | undefined {
   const i = process.argv.indexOf(`--${name}`)
@@ -64,9 +69,19 @@ async function main() {
   console.log('\nStep 3 — exchanging code for tokens...')
   const tokens = await exchangeCodeForToken({ clientId, clientSecret, redirectUri, code })
 
-  console.log('\nSuccess. Copy this refresh token into the SchwabBroker account config:\n')
-  console.log(tokens.refreshToken)
-  console.log('\n(Access token below expires in ~30 minutes; OpenAlice refreshes it automatically on every call.)')
+  const tokensPath = arg('out') ?? process.env.SCHWAB_TOKENS_PATH ?? DEFAULT_TOKENS_PATH
+  const payload = { refreshToken: tokens.refreshToken, mintedAt: new Date().toISOString() }
+  try {
+    await mkdir(dirname(tokensPath), { recursive: true })
+    await writeFile(tokensPath, JSON.stringify(payload), { mode: 0o600 })
+    console.log(`\nSuccess. Refresh token written to ${tokensPath}.`)
+    console.log('schwab-singleton will pick it up on the next call and rotate it automatically thereafter.')
+  } catch (err) {
+    console.error(`\nGot tokens, but failed to write ${tokensPath}: ${(err as Error).message}`)
+    console.error('Copy this refresh token into the file manually:\n')
+    console.log(tokens.refreshToken)
+  }
+  console.log('\n(Access token below expires in ~30 minutes; schwab-singleton refreshes it automatically on every call.)')
   console.log(`access_token: ${tokens.accessToken}`)
   console.log(`expires_at:   ${new Date(tokens.expiresAt).toISOString()}`)
 }
