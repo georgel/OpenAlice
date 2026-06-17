@@ -21,6 +21,10 @@ import {
   type OptionChainParams,
   type OptionQuote,
   type SchwabOptionContract,
+  SchwabAccountNumbersResponseSchema,
+  SchwabTransactionsResponseSchema,
+  type SchwabAccountNumber,
+  type SchwabTransaction,
 } from './schwab-types.js'
 import { refreshAccessToken, type SchwabTokens, type TokenStore } from './schwab-auth.js'
 
@@ -151,6 +155,36 @@ export class SchwabClient {
   async optionChain(params: OptionChainParams): Promise<OptionChain> {
     const resp = await this.optionChainRaw(params)
     return flattenOptionChain(resp)
+  }
+
+  // ---- Accounts & transactions (Accounts and Trading API) ====================
+  //
+  // Read-only. These go through the same request() path as quotes, so they share
+  // the single-flight refresh — they do NOT add a third refresh path (see
+  // docs/schwab-refresh-chain-hardening.md).
+
+  /** Map of account number → encrypted hashValue (the hash is required for all account calls). */
+  async accountNumbers(): Promise<SchwabAccountNumber[]> {
+    const raw = await this.request<unknown>(`/trader/v1/accounts/accountNumbers`)
+    return SchwabAccountNumbersResponseSchema.parse(raw)
+  }
+
+  /**
+   * Transaction history for one account (by encrypted hash). Schwab requires
+   * startDate + endDate (ISO-8601 with ms + tz; max ~1-year span). Returns the
+   * raw transaction objects unmodified.
+   */
+  async transactions(
+    accountHash: string,
+    params: { startDate: string; endDate: string; types?: string; symbol?: string },
+  ): Promise<SchwabTransaction[]> {
+    const q = new URLSearchParams({ startDate: params.startDate, endDate: params.endDate })
+    if (params.types) q.set('types', params.types)
+    if (params.symbol) q.set('symbol', params.symbol)
+    const raw = await this.request<unknown>(
+      `/trader/v1/accounts/${encodeURIComponent(accountHash)}/transactions?${q}`,
+    )
+    return SchwabTransactionsResponseSchema.parse(raw)
   }
 }
 
