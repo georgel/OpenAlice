@@ -194,3 +194,52 @@ export interface OptionChainParams {
   fromDate?: string
   toDate?: string
 }
+
+// ==================== Accounts (account-number → hash mapping) ====================
+
+/** /trader/v1/accounts/accountNumbers → [{ accountNumber, hashValue }]. */
+export const SchwabAccountNumberSchema = z.object({
+  accountNumber: z.string(),
+  hashValue: z.string(),
+}).passthrough()
+export type SchwabAccountNumber = z.infer<typeof SchwabAccountNumberSchema>
+
+export const SchwabAccountNumbersResponseSchema = z.array(SchwabAccountNumberSchema)
+export type SchwabAccountNumbersResponse = z.infer<typeof SchwabAccountNumbersResponseSchema>
+
+// ==================== Transactions ====================
+
+/**
+ * /trader/v1/accounts/{hash}/transactions → array of transaction objects.
+ *
+ * Schwab's transaction schema is large and varies by activity type (TRADE,
+ * DIVIDEND_OR_INTEREST, ACH_RECEIPT, JOURNAL, nested transferItems[], …). We
+ * deliberately DON'T model it strictly — this is a raw-dump pass-through. We
+ * validate only that it's an array of objects, so a Schwab shape change can
+ * never reject real account data (mirrors the "unknown fields pass through"
+ * policy used for quotes/chains above).
+ */
+export const SchwabTransactionSchema = z.record(z.string(), z.unknown())
+export type SchwabTransaction = z.infer<typeof SchwabTransactionSchema>
+
+export const SchwabTransactionsResponseSchema = z.array(SchwabTransactionSchema)
+export type SchwabTransactionsResponse = z.infer<typeof SchwabTransactionsResponseSchema>
+
+/** Valid Schwab transaction `types` filter values (optional on the request). */
+export type SchwabTransactionType =
+  | 'TRADE' | 'RECEIVE_AND_DELIVER' | 'DIVIDEND_OR_INTEREST'
+  | 'ACH_RECEIPT' | 'ACH_DISBURSEMENT' | 'CASH_RECEIPT' | 'CASH_DISBURSEMENT'
+  | 'ELECTRONIC_FUND' | 'WIRE_OUT' | 'WIRE_IN' | 'JOURNAL' | 'MEMORANDUM'
+  | 'MARGIN_CALL' | 'MONEY_MARKET' | 'SMA_ADJUSTMENT'
+
+export interface TransactionsParams {
+  /** Account number OR encrypted hashValue. Omit to fetch every authorized account. */
+  account?: string
+  /** ISO-8601 with ms + tz, e.g. "2026-01-01T00:00:00.000Z". Required by Schwab; max ~1-year span. */
+  startDate: string
+  endDate: string
+  /** Optional Schwab type filter; comma-separated when multiple. */
+  types?: string
+  /** Optional symbol filter. */
+  symbol?: string
+}

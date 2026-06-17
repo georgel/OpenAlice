@@ -47,7 +47,14 @@ import {
 } from '../types.js'
 import '../../contract-ext.js'
 import { SchwabClient } from './schwab-client.js'
-import type { SchwabBrokerConfig, OptionChain, OptionChainParams } from './schwab-types.js'
+import type {
+  SchwabBrokerConfig,
+  OptionChain,
+  OptionChainParams,
+  SchwabAccountNumber,
+  SchwabTransaction,
+  TransactionsParams,
+} from './schwab-types.js'
 import type { SchwabTokens, TokenStore } from './schwab-auth.js'
 import { refreshAccessToken } from './schwab-auth.js'
 import { makeStockContract, resolveSchwabSymbol, makeOptionContract } from './schwab-contracts.js'
@@ -260,6 +267,44 @@ export class SchwabBroker implements IBroker<SchwabBrokerMeta> {
    */
   async getOptionChain(params: OptionChainParams): Promise<OptionChain> {
     return this.client.optionChain(params)
+  }
+
+  // ---- Accounts & transactions (read-only — independent of marketDataOnly) ----
+  //
+  // marketDataOnly gates *trading* (order placement); reading transaction
+  // history is a read-only Accounts-API call, so these work whenever the broker
+  // is connected. Requires the Schwab app to have the "Accounts and Trading
+  // Production" product, and the token to carry account scope (re-auth after
+  // adding the product). Without it Schwab returns 401/403, surfaced verbatim.
+
+  /** List the account number → encrypted hash mapping for the authorized login. */
+  async getAccountNumbers(): Promise<SchwabAccountNumber[]> {
+    return this.client.accountNumbers()
+  }
+
+  /**
+   * Transaction history. Resolves `account` (plain number or hash) against the
+   * authorized accounts; omit it to pull every account. Returns a map keyed by
+   * the (plain) account number → raw Schwab transaction objects.
+   */
+  async getTransactions(params: TransactionsParams): Promise<Record<string, SchwabTransaction[]>> {
+    const accounts = await this.client.accountNumbers()
+    const targets = params.account
+      ? accounts.filter(a => a.accountNumber === params.account || a.hashValue === params.account)
+      : accounts
+    if (params.account && targets.length === 0) {
+      throw new BrokerError('CONFIG', `No Schwab account matching '${params.account}' (have ${accounts.length} account(s)).`)
+    }
+    const out: Record<string, SchwabTransaction[]> = {}
+    for (const a of targets) {
+      out[a.accountNumber] = await this.client.transactions(a.hashValue, {
+        startDate: params.startDate,
+        endDate: params.endDate,
+        types: params.types,
+        symbol: params.symbol,
+      })
+    }
+    return out
   }
 
   // ---- Capabilities ----

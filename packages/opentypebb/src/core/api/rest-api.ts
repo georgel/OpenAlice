@@ -49,6 +49,48 @@ export function createApp(
     }
   })
 
+  // Schwab accounts — account-number → hash mapping for the authorized login.
+  // NB: returns real (PII) account numbers. Needs the "Accounts and Trading
+  // Production" product + account scope on the token.
+  app.get('/api/v1/schwab/accounts', async (c) => {
+    try {
+      const broker = await getSchwabBroker()
+      return c.json({ accounts: await broker.getAccountNumbers() })
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err)
+      return c.json({ error: msg }, 502)
+    }
+  })
+
+  // Schwab transaction history (raw pass-through dump).
+  // Required query params: startDate, endDate (ISO-8601 w/ ms+tz, e.g.
+  // 2026-01-01T00:00:00.000Z; Schwab caps the span at ~1 year).
+  // Optional: account (number or hash; omit = all authorized accounts), types, symbol.
+  app.get('/api/v1/schwab/transactions', async (c) => {
+    const startDate = c.req.query('startDate')
+    const endDate = c.req.query('endDate')
+    if (!startDate || !endDate) {
+      return c.json(
+        { error: 'startDate and endDate are required (ISO-8601 with ms+tz, e.g. 2026-01-01T00:00:00.000Z)' },
+        400,
+      )
+    }
+    try {
+      const broker = await getSchwabBroker()
+      const transactions = await broker.getTransactions({
+        account: c.req.query('account'),
+        startDate,
+        endDate,
+        types: c.req.query('types'),
+        symbol: c.req.query('symbol'),
+      })
+      return c.json({ transactions })
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err)
+      return c.json({ error: msg }, 502)
+    }
+  })
+
   return app
 }
 
